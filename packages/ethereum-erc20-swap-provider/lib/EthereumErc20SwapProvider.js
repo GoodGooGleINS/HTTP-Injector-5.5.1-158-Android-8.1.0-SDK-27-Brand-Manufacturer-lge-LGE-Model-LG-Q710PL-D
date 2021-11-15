@@ -1,0 +1,217 @@
+import Provider from '@liquality/provider'
+import { padHexStart, sha256 } from '@liquality/crypto'
+import { addressToString, sleep, caseInsensitiveEqual } from '@liquality/utils'
+import { remove0x } from '@liquality/ethereum-utils'
+import {
+  PendingTxError,
+  TxNotFoundError,
+  TxFailedError,
+  BlockNotFoundError,
+  InvalidSecretError,
+  InvalidAddressError,
+  InvalidExpirationError
+} from '@liquality/errors'
+
+import { version } from '../package.json'
+
+const SOL_CLAIM_FUNCTION = '0xbd66528a' // claim(bytes32)
+const SOL_REFUND_FUNCTION = '0x590e1ae3' // refund()
+
+export default class EthereumErc20SwapProvider extends Provider {
+  createSwapScript (recipientAddress, refundAddress, secretHash, expiration) {
+    if (secretHash.length !== 64) throw new Error('Invalid Secret Size')
+
+    recipientAddress = remove0x(addressToString(recipientAddress))
+    refundAddress = remove0x(addressToString(refundAddress))
+
+    if (Buffer.byteLength(recipientAddress, 'hex') !== 20) {
+      throw new InvalidAddressError(`Invalid recipient address: ${recipientAddress}`)
+    }
+
+    if (Buffer.byteLength(refundAddress, 'hex') !== 20) {
+      throw new InvalidAddressError(`Invalid refund address: ${refundAddress}`)
+    }
+
+    if (Buffer.byteLength(secretHash, 'hex') !== 32) {
+      throw new InvalidSecretError(`Invalid secret hash: ${secretHash}`)
+    }
+
+    const expirationEncoded = padHexStart(expiration.toString(16), 32)
+    if (Buffer.byteLength(expirationEncoded, 'hex') > 32) {
+      throw new InvalidExpirationError(`Invalid expiration: ${expiration}`)
+    }
+
+    if (sha256('0000000000000000000000000000000000000000000000000000000000000000') === secretHash) {
+      throw new InvalidSecretError(`Invalid secret hash: ${secretHash}. Secret 0 detected.`)
+    }
+
+    const tokenAddress = remove0x(this.getMethod('getContractAddress')())
+
+    return [
+      '6080604052600080546001600160a01b031990811673',
+      `${recipientAddress}1790915560018054821673`,
+      `${refundAddress}17905560028054821673`,
+      `${tokenAddress}1790819055600380549092166001600160a01b03919091161790557f`,
+      `${secretHash}6004553480156100b157600080fd5b506103e4806100c16000396000f3fe608060405234801561001057600080fd5b50600436106100365760003560e01c8063590e1ae31461003b578063bd66528a14610045575b600080fd5b610043610062565b005b6100436004803603602081101561005b57600080fd5b503561017c565b7f`,
+      `${expirationEncoded}421161008e57600080fd5b600154600354604080516370a0823160e01b8152306004820152905161016e9363a9059cbb60e01b936001600160a01b03918216939116916370a0823191602480820192602092909190829003018186803b1580156100ec57600080fd5b505afa158015610100573d6000803e3d6000fd5b505050506040513d602081101561011657600080fd5b5051604080516001600160a01b0390931660248401526044808401929092528051808403909201825260649092019091526020810180516001600160e01b03166001600160e01b03199093169290921790915261029c565b6001546001600160a01b0316ff5b600454600282604051602001808281526020019150506040516020818303038152906040526040518082805190602001908083835b602083106101d05780518252601f1990920191602091820191016101b1565b51815160209384036101000a60001901801990921691161790526040519190930194509192505080830381855afa15801561020f573d6000803e3d6000fd5b5050506040513d602081101561022457600080fd5b50511461023057600080fd5b600054600354604080516370a0823160e01b8152306004820152905161028e9363a9059cbb60e01b936001600160a01b03918216939116916370a0823191602480820192602092909190829003018186803b1580156100ec57600080fd5b6000546001600160a01b0316ff5b60606102a7826102d5565b8051909150156102d1578080602001905160208110156102c657600080fd5b50516102d157600080fd5b5050565b600254604051825160609260009284926001600160a01b0390921691869190819060208401908083835b6020831061031e5780518252601f1990920191602091820191016102ff565b6001836020036101000a0380198251168184511680821785525050505050509050019150506000604051808303816000865af19150503d8060008114610380576040519150601f19603f3d011682016040523d82523d6000602084013e610385565b606091505b509150915081156103995791506103a99050565b8051156100365780518082602001fd5b91905056fea2646970667358221220160723b130690048d6220e7557605adfe6c53698edfa5116bd501c69a2fd0f7764736f6c634300060a0033`
+    ].join('').toLowerCase()
+  }
+
+  async initiateSwap (value, recipientAddress, refundAddress, secretHash, expiration, gasPrice) {
+    const bytecode = this.createSwapScript(recipientAddress, refundAddress, secretHash, expiration)
+    const deployTx = await this.getMethod('sendTransaction')(null, 0, bytecode, gasPrice)
+    let initiationTransactionReceipt = null
+
+    while (initiationTransactionReceipt === null) {
+      initiationTransactionReceipt = await this.getMethod('getTransactionReceipt')(deployTx.hash)
+      const initiationSuccessful = initiationTransactionReceipt.contractAddress && initiationTransactionReceipt.status === '1'
+      if (!initiationSuccessful) {
+        throw new TxFailedError(`ERC20 Swap Initiation Transaction Failed: ${initiationTransactionReceipt.transactionHash}`)
+      }
+      await sleep(5000)
+    }
+
+    const fundingTx = await this.getMethod('sendTransaction')(initiationTransactionReceipt.contractAddress, value, undefined, gasPrice)
+
+    deployTx.secondaryTx = fundingTx
+
+    return deployTx
+  }
+
+  async claimSwap (initiationTxHash, recipientAddress, refundAddress, secret, expiration, gasPrice) {
+    const initiationTransactionReceipt = await this.getMethod('getTransactionReceipt')(initiationTxHash)
+    if (!initiationTransactionReceipt) throw new PendingTxError(`Transaction receipt is not available: ${initiationTxHash}`)
+
+    await this.getMethod('assertContractExists')(initiationTransactionReceipt.contractAddress)
+
+    return this.getMethod('sendTransaction')(initiationTransactionReceipt.contractAddress, 0, SOL_CLAIM_FUNCTION + secret, gasPrice)
+  }
+
+  async refundSwap (initiationTxHash, recipientAddress, refundAddress, secretHash, expiration, gasPrice) {
+    const initiationTransactionReceipt = await this.getMethod('getTransactionReceipt')(initiationTxHash)
+    if (!initiationTransactionReceipt) throw new PendingTxError(`Transaction receipt is not available: ${initiationTxHash}`)
+
+    await this.getMethod('assertContractExists')(initiationTransactionReceipt.contractAddress)
+
+    return this.getMethod('sendTransaction')(initiationTransactionReceipt.contractAddress, 0, SOL_REFUND_FUNCTION, gasPrice)
+  }
+
+  doesTransactionMatchInitiation (transaction, value, recipientAddress, refundAddress, secretHash, expiration) {
+    const data = this.createSwapScript(recipientAddress, refundAddress, secretHash, expiration)
+    return transaction._raw.to === null && transaction._raw.input === data
+  }
+
+  doesTransactionMatchClaim (transaction, initiationTransactionReceipt, recipientAddress, refundAddress, secretHash, expiration) {
+    return caseInsensitiveEqual(transaction._raw.to, initiationTransactionReceipt.contractAddress) &&
+           transaction._raw.input.startsWith(remove0x(SOL_CLAIM_FUNCTION))
+  }
+
+  doesTransactionMatchFunding (transaction, erc20TokenContractAddress, contractData) {
+    return caseInsensitiveEqual(transaction._raw.to, erc20TokenContractAddress) &&
+           transaction._raw.input === contractData
+  }
+
+  async doesBalanceMatchValue (contractAddress, value) {
+    const balance = await this.getMethod('getBalance')(contractAddress)
+    return balance.isEqualTo(value)
+  }
+
+  async getSwapSecret (claimTxHash) {
+    const claimTransaction = await this.getMethod('getTransactionByHash')(claimTxHash)
+    return claimTransaction._raw.input.substring(8)
+  }
+
+  async verifyInitiateSwapTransaction (initiationTxHash, value, recipientAddress, refundAddress, secretHash, expiration) {
+    const initiationTransaction = await this.getMethod('getTransactionByHash')(initiationTxHash)
+    if (!initiationTransaction) throw new TxNotFoundError(`Transaction not found: ${initiationTxHash}`)
+
+    const initiationTransactionReceipt = await this.getMethod('getTransactionReceipt')(initiationTxHash)
+    if (!initiationTransactionReceipt) throw new PendingTxError(`Transaction receipt is not available: ${initiationTxHash}`)
+
+    const transactionMatchesSwapParams = this.doesTransactionMatchInitiation(
+      initiationTransaction,
+      value,
+      recipientAddress,
+      refundAddress,
+      secretHash,
+      expiration
+    )
+    const balanceMatchValue = await this.doesBalanceMatchValue(initiationTransactionReceipt.contractAddress, value)
+
+    return transactionMatchesSwapParams &&
+           initiationTransactionReceipt.contractAddress &&
+           initiationTransactionReceipt.status === '1' &&
+           balanceMatchValue
+  }
+
+  async findInitiateSwapTransaction (value, recipientAddress, refundAddress, secretHash, expiration, blockNumber) {
+    const block = await this.getMethod('getBlockByNumber')(blockNumber, true)
+    if (!block) throw new BlockNotFoundError(`Block #${blockNumber} is not available`)
+
+    return block.transactions.find(
+      transaction => this.doesTransactionMatchInitiation(
+        transaction,
+        value,
+        recipientAddress,
+        refundAddress,
+        secretHash,
+        expiration
+      )
+    )
+  }
+
+  async findFundSwapTransaction (initiationTxHash, value, recipientAddress, refundAddress, secretHash, expiration, blockNumber) {
+    const block = await this.getMethod('getBlockByNumber')(blockNumber, true)
+    if (!block) throw new BlockNotFoundError(`Block #${blockNumber} is not available`)
+
+    const initiationTransactionReceipt = await this.getMethod('getTransactionReceipt')(initiationTxHash)
+    if (!initiationTransactionReceipt) throw new PendingTxError(`Transaction receipt is not available: ${initiationTxHash}`)
+
+    const erc20TokenContractAddress = await this.getMethod('getContractAddress')()
+    const contractData = await this.getMethod('generateErc20Transfer')(initiationTransactionReceipt.contractAddress, value)
+
+    return block.transactions.find(
+      transaction => this.doesTransactionMatchFunding(transaction, erc20TokenContractAddress, contractData)
+    )
+  }
+
+  async findClaimSwapTransaction (initiationTxHash, recipientAddress, refundAddress, secretHash, expiration, blockNumber) {
+    const block = await this.getMethod('getBlockByNumber')(blockNumber, true)
+    if (!block) throw new BlockNotFoundError(`Block #${blockNumber} is not available`)
+
+    const initiationTransactionReceipt = await this.getMethod('getTransactionReceipt')(initiationTxHash)
+    if (!initiationTransactionReceipt) throw new PendingTxError(`Transaction receipt is not available: ${initiationTxHash}`)
+
+    const transaction = block.transactions.find(
+      transaction => this.doesTransactionMatchClaim(transaction, initiationTransactionReceipt)
+    )
+    if (!transaction) return
+
+    const transactionReceipt = await this.getMethod('getTransactionReceipt')(transaction.hash)
+    if (!transactionReceipt) throw new PendingTxError(`Claim transaction receipt is not available: ${transaction.hash}`)
+
+    if (transactionReceipt.status === '1') {
+      transaction.secret = await this.getSwapSecret(transaction.hash)
+      return transaction
+    }
+  }
+
+  async findRefundSwapTransaction (initiationTxHash, recipientAddress, refundAddress, secretHash, expiration, blockNumber) {
+    const block = await this.getMethod('getBlockByNumber')(blockNumber, true)
+    if (!block) throw new BlockNotFoundError(`Block #${blockNumber} is not available`)
+
+    const initiationTransactionReceipt = await this.getMethod('getTransactionReceipt')(initiationTxHash)
+    if (!initiationTransactionReceipt) throw new PendingTxError(`Transaction receipt is not available: ${initiationTxHash}`)
+
+    const SOL_REFUND_FUNCTION_WITHOUT0X = remove0x(SOL_REFUND_FUNCTION)
+    return block.transactions.find(transaction =>
+      caseInsensitiveEqual(transaction._raw.to, initiationTransactionReceipt.contractAddress) &&
+      transaction._raw.input === SOL_REFUND_FUNCTION_WITHOUT0X &&
+      block.timestamp >= expiration
+    )
+  }
+}
+
+EthereumErc20SwapProvider.SOL_CLAIM_FUNCTION = SOL_CLAIM_FUNCTION
+EthereumErc20SwapProvider.SOL_REFUND_FUNCTION = SOL_REFUND_FUNCTION
+EthereumErc20SwapProvider.version = version

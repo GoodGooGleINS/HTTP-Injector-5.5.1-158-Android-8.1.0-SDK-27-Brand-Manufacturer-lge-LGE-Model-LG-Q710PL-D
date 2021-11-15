@@ -1,0 +1,47 @@
+{
+  "name": "@liquality/bitcoin-ledger-provider",
+  "umdName": "BitcoinLedgerProvider",
+  "umdExport": "default",
+  "version": "0.4.26-beta.5",
+  "description": "",
+  "module": "lib/index.js",
+  "main": "dist/index.cjs.js",
+  "files": [
+    "dist",
+    "lib"
+  ],
+  "scripts": {
+    "build:node": "webpack --config ../../webpack/webpack.node.config.js",
+    "build:browser": "webpack --config ../../webpack/webpack.browser.config.js",
+    "build": "webpack --config ../../webpack/webpack.config.js"
+  },
+  "author": "Liquality <info@liquality.io>",
+  "license": "MIT",
+  "dependencies": {
+    "@ledgerhq/hw-app-btc": "^5.2.0",
+    "@liquality/bitcoin-networks": "^0.4.26-beta.5",
+    "@liquality/bitcoin-utils": "^0.4.26-beta.5",
+    "@liquality/crypto": "^0.4.26-beta.5",
+    "@liquality/ledger-provider": "^0.4.26-beta.5",
+    "@liquality/utils": "^0.4.26-beta.5",
+    "bignumber.js": "^9.0.0",
+    "bip32": "^2.0.5",
+    "bitcoinjs-lib": "^5.1.7",
+    "invariant": "^2.2.4",
+    "lodash": "^4.17.15"
+  },
+  "engines": {
+    "node": "~8.12.0"
+  },
+  "homepage": "https://github.com/liquality/chainabstractionlayer#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/liquality/chainabstractionlayer.git"
+  },
+  "bugs": {
+    "url": "https://github.com/liquality/chainabstractionlayer/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

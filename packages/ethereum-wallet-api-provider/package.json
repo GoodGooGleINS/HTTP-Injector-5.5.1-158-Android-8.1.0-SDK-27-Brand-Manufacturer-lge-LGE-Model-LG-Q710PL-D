@@ -1,0 +1,47 @@
+{
+  "name": "@liquality/ethereum-wallet-api-provider",
+  "version": "1.1.7",
+  "description": "",
+  "module": "dist/index.js",
+  "main": "dist/index.js",
+  "types": "dist/lib/index.d.ts",
+  "directories": {
+    "dist": "dist",
+    "src": "lib"
+  },
+  "files": [
+    "dist",
+    "lib"
+  ],
+  "scripts": {
+    "build": "webpack --config ../../webpack/webpack.config.js"
+  },
+  "author": "Liquality <info@liquality.io>",
+  "license": "MIT",
+  "dependencies": {
+    "@babel/runtime": "^7.12.1",
+    "@liquality/debug": "^1.1.7",
+    "@liquality/errors": "^1.1.7",
+    "@liquality/ethereum-networks": "^1.1.7",
+    "@liquality/ethereum-utils": "^1.1.7",
+    "@liquality/types": "^1.1.7",
+    "@liquality/utils": "^1.1.7",
+    "@liquality/wallet-provider": "^1.1.7",
+    "lodash": "^4.17.20"
+  },
+  "homepage": "https://github.com/liquality/chainabstractionlayer#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/liquality/chainabstractionlayer.git"
+  },
+  "bugs": {
+    "url": "https://github.com/liquality/chainabstractionlayer/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "devDependencies": {
+    "@types/lodash": "^4.14.168"
+  },
+  "sideEffects": false
+}

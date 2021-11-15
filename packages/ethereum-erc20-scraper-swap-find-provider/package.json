@@ -1,0 +1,44 @@
+{
+  "name": "@liquality/ethereum-erc20-scraper-swap-find-provider",
+  "umdName": "EthereumErc20ScraperSwapFindProvider",
+  "umdExport": "default",
+  "version": "0.6.2",
+  "description": "",
+  "module": "lib/index.js",
+  "main": "dist/index.cjs.js",
+  "files": [
+    "dist",
+    "lib"
+  ],
+  "scripts": {
+    "build:node": "webpack --config ../../webpack/webpack.node.config.js",
+    "build:browser": "webpack --config ../../webpack/webpack.browser.config.js",
+    "build": "webpack --config ../../webpack/webpack.config.js"
+  },
+  "author": "Liquality <info@liquality.io>",
+  "license": "MIT",
+  "dependencies": {
+    "@babel/runtime": "^7.4.3",
+    "@liquality/crypto": "^0.6.2",
+    "@liquality/ethereum-erc20-swap-provider": "^0.6.2",
+    "@liquality/ethereum-scraper-swap-find-provider": "^0.6.2",
+    "@liquality/ethereum-utils": "^0.6.2",
+    "@liquality/provider": "^0.6.2",
+    "@liquality/utils": "^0.6.2",
+    "axios": "^0.19.0"
+  },
+  "engines": {
+    "node": "~8.12.0"
+  },
+  "homepage": "https://github.com/liquality/chainabstractionlayer#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/liquality/chainabstractionlayer.git"
+  },
+  "bugs": {
+    "url": "https://github.com/liquality/chainabstractionlayer/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

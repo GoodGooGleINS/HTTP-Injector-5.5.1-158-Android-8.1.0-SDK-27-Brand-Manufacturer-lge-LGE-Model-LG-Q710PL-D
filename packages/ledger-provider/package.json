@@ -1,0 +1,48 @@
+{
+  "name": "@liquality/ledger-provider",
+  "version": "1.1.6",
+  "description": "",
+  "module": "dist/index.js",
+  "main": "dist/index.js",
+  "types": "dist/lib/index.d.ts",
+  "directories": {
+    "dist": "dist",
+    "src": "lib"
+  },
+  "files": [
+    "dist",
+    "lib"
+  ],
+  "scripts": {
+    "build": "webpack --config ../../webpack/webpack.config.js"
+  },
+  "author": "Liquality <info@liquality.io>",
+  "license": "MIT",
+  "dependencies": {
+    "@babel/polyfill": "^7.12.1",
+    "@babel/runtime": "^7.12.1",
+    "@ledgerhq/hw-transport": "^5.43.0",
+    "@liquality/debug": "^1.1.6",
+    "@liquality/errors": "^1.1.6",
+    "@liquality/types": "^1.1.6",
+    "@liquality/utils": "^1.1.6",
+    "@liquality/wallet-provider": "^1.1.6"
+  },
+  "homepage": "https://github.com/liquality/chainabstractionlayer#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/liquality/chainabstractionlayer.git"
+  },
+  "bugs": {
+    "url": "https://github.com/liquality/chainabstractionlayer/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "devDependencies": {
+    "@types/ledgerhq__hw-transport-node-hid": "^4.22.2",
+    "@types/ledgerhq__hw-transport-u2f": "^4.21.2",
+    "@types/ledgerhq__hw-transport-webusb": "^4.70.1"
+  },
+  "sideEffects": false
+}

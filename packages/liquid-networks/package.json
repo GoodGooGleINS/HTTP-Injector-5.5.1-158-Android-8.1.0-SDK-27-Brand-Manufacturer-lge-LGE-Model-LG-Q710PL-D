@@ -1,0 +1,42 @@
+{
+  "name": "@liquality/liquid-networks",
+  "umdName": "LiquidNetworks",
+  "umdExport": "default",
+  "version": "0.0.1",
+  "module": "lib/index.js",
+  "main": "dist/index.cjs.js",
+  "author": "Marco Argentieri",
+  "license": "MIT",
+  "description": "> TODO: description",
+  "scripts": {
+    "build:node": "webpack --config ../../webpack/webpack.node.config.js",
+    "build:browser": "webpack --config ../../webpack/webpack.browser.config.js",
+    "build": "webpack --config ../../webpack/webpack.config.js"
+  },
+  "keywords": [
+    "liquid",
+    "elements",
+    "blockstream"
+  ],
+  "homepage": "https://github.com/liquality/chainabstractionlayer#readme",
+  "directories": {
+    "lib": "lib",
+    "test": "__tests__"
+  },
+  "files": [
+    "lib"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/liquality/chainabstractionlayer.git"
+  },
+  "bugs": {
+    "url": "https://github.com/liquality/chainabstractionlayer/issues"
+  },
+  "dependencies": {
+    "liquidjs-lib": "github:vulpemventures/liquidjs-lib"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

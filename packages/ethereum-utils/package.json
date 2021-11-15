@@ -1,0 +1,45 @@
+{
+  "name": "@liquality/ethereum-utils",
+  "version": "1.1.5",
+  "description": "",
+  "module": "dist/index.js",
+  "main": "dist/index.js",
+  "types": "dist/lib/index.d.ts",
+  "directories": {
+    "dist": "dist",
+    "src": "lib"
+  },
+  "files": [
+    "dist",
+    "lib"
+  ],
+  "scripts": {
+    "build": "webpack --config ../../webpack/webpack.config.js"
+  },
+  "author": "Liquality <info@liquality.io>",
+  "license": "MIT",
+  "dependencies": {
+    "@babel/runtime": "^7.12.1",
+    "@liquality/crypto": "^1.1.5",
+    "@liquality/errors": "^1.1.5",
+    "@liquality/schema": "^1.1.5",
+    "@liquality/types": "^1.1.5",
+    "@liquality/utils": "^1.1.5",
+    "@types/lodash": "^4.14.168",
+    "bignumber.js": "^9.0.0",
+    "eip55": "^1.0.3",
+    "lodash": "^4.17.20"
+  },
+  "homepage": "https://github.com/liquality/chainabstractionlayer#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/liquality/chainabstractionlayer.git"
+  },
+  "bugs": {
+    "url": "https://github.com/liquality/chainabstractionlayer/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "sideEffects": false
+}

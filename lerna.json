@@ -1,0 +1,8 @@
+{
+  "npmClient": "npm",
+  "packages": [
+    "packages/*"
+  ],
+  "concurrency": 1,
+  "version": "0.7.0"
+}

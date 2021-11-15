@@ -1,0 +1,7 @@
+node_modules
+dist
+coverage
+examples
+doc
+.eslintrc.js
+typedoc.js
